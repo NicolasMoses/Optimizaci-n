@@ -103,12 +103,12 @@ def add_constraint_matrix(my_problem, data):
     
 
 def populate_by_row(my_problem, data):
-    x_var = {}
-    w_var = {}
-    s_var = {}
-    y_var = {}
-    q_var = {}
-    qv_var = {}
+    x_var = {}  # variable binaria que vale 1 si el trabajador “t” realizó la orden “o” en el turno “h” en el día “d”, y 0 en caso contrario. 
+    w_var = {}  # variable binaria que vale 1 si si la orden oi fue realizada, y 0 en caso contrario.
+    s_var = {}  # variable binaria que vale 1 si el trabajador “t” trabajó en el día “d”, y 0 en caso contrario. 
+    y_var = {}  # variable binaria que vale 1 si el trabajador “t” se encuentra en el grupo de remuneración “n” y 0 en caso contrario.
+    q_var = {}  # variable continua que representa la cantidad total de órdenes de trabajo realizadas por trabajador “t”.
+    qv_var = {} # variable continua que tiene la cantidad de órdenes totales realizadas por el trabajador “t” en el grupo de remuneración “n”
 
     # Agrego variables binarias base que representan si el trabajador t, realizo la orden o, durante el turno h y dia d:
     names_x = []
@@ -130,7 +130,7 @@ def populate_by_row(my_problem, data):
     )
 
 
-    # Agrego variables binarias que representan si la orden fue realizada o no:
+    # Agrego variables binarias (W) que representan si la orden fue realizada o no:
     names_w = []
     for o in range(data.cantidad_ordenes):
         # Crear nombres únicos para cada variable
@@ -151,7 +151,7 @@ def populate_by_row(my_problem, data):
     )
 
 
-    # Agrego variables binarias que representan si el trabajador t trabajo el dia d:
+    # Agrego variables binarias (S) que representan si el trabajador t trabajo el dia d:
     names_s = []
     for t in range(data.cantidad_trabajadores):
         for d in range(6):
@@ -169,7 +169,7 @@ def populate_by_row(my_problem, data):
     )
     
 
-    # Agrego variables binarias que representan la categoria de numero de dias trabajados en la que se encuentra el trabajador t:
+    # Agrego variables binarias (Y) que representan la categoria de numero de dias trabajados en la que se encuentra el trabajador t:
     names_y = []
     for t in range(data.cantidad_trabajadores):
         for n in range(4):
