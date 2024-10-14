@@ -25,6 +25,7 @@ class FieldWorkAssignment:
         self.ordenes_correlativas = []
         self.ordenes_conflictivas = []
         self.ordenes_repetitivas = []
+        self.M = 200
         #self.cantidad_dias = 6 #Ver si ésto lo dejamos así o hacemos que lo lea del .txt (en ese caso, hay que editar más abajo para que lo lea de una row)
         #self.cantidad_turnos = 5 #Ver si ésto lo dejamos así o hacemos que lo lea del .txt (en ese caso, hay que editar más abajo para que lo lea de una row)
 
@@ -93,29 +94,9 @@ def get_instance_data():
     return instance
     
 
-def add_constraint_matrix(my_problem, data):
+def add_constraint_matrix(my_problem, data, x_var, y_var, w_var, s_var, q_var, qy_var):
 
-    cantidad_trabajadores
-    cantidad_ordenes
-    trabajadores_necesarios
-    
-    cantidad_conflictos_trabajadores
-    conflictos_trabajadores
-    
-    cantidad_ordenes_correlativas
-    ordenes_correlativas
-    
-    cantidad_ordenes_conflictivas
-    ordenes_conflictivas
 
-    cantidad_ordenes_repetitivas
-    ordenes_repetitivas
-        
-    for t in range(data.cantidad_trabajadores):
-    for o in range(data.cantidad_ordenes):
-    for h in range(5):
-    for d in range(6):
-    
     ## Restricciones de factibilidad
         
     # 1) Cada trabajador (t) solo puede estar haciendo una órden (o) por turno (h) por día (d):
@@ -137,26 +118,26 @@ def add_constraint_matrix(my_problem, data):
     for o in range(data.cantidad_ordenes):
         indices = []
         values = []
-        for t in range(cantidad_trabajadores):
+        for t in range(data.cantidad_trabajadores):
             for h in range(5):
                 for d in range(6):
                     indices.append(x_var[(t, o, h, d)])
                     values.append(1.0)
         # Agregamos To * W_o a la restricción
         indices.append(w_var[o])
-        values.append(-data['trabajadores_necesarios'][o])  # Coeficiente negativo para T_o * W_o porque los movemos al lado izquierdo de la restricción
-        my_problem.linear_constraints.add(lin_expr=[cplex.SparsePair(ind=indices, val=values)], senses=['E'], rhs=[cantidad_trabajadores]) # Del lado derecho de la restricción va 0 porque pasamos al lado izquierdo lo otro restando
+        values.append(-data.trabajadores_necesarios[o])  # Coeficiente negativo para T_o * W_o porque los movemos al lado izquierdo de la restricción
+        my_problem.linear_constraints.add(lin_expr=[cplex.SparsePair(ind=indices, val=values)], senses=['E'], rhs=[0]) # Del lado derecho de la restricción va 0 porque pasamos al lado izquierdo lo otro restando
 
     # 3) Cada trabajador puede trabajar como máximo 4 turnos al día:
     for t in range(data.cantidad_trabajadores):
         for d in range(6):
-        indices = []
-        values = []
-        for o in range(data.cantidad_ordenes):
-            for h in range(5):
-                indices.append(x_var[(t, o, h, d)])
-                values.append(1.0)
-        my_problem.linear_constraints.add(lin_expr=[cplex.SparsePair(ind=indices, val=values)],senses=["L"], rhs=[4])
+            indices = []
+            values = []
+            for o in range(data.cantidad_ordenes):
+                for h in range(5):
+                    indices.append(x_var[(t, o, h, d)])
+                    values.append(1.0)
+            my_problem.linear_constraints.add(lin_expr=[cplex.SparsePair(ind=indices, val=values)],senses=["L"], rhs=[4])
 
     # 4) Cada trabajador puede trabajar como máximo 5 días por semana:
     for t in range(data.cantidad_trabajadores):
@@ -193,7 +174,7 @@ def add_constraint_matrix(my_problem, data):
             my_problem.linear_constraints.add(lin_expr=[cplex.SparsePair(ind=indices, val=values)], senses=['L'], rhs=[0])
 
     # 6) Hay pares de órdenes de trabajo que no pueden ser satisfechas en turnos consecutivos de un trabajador (Ord_Confl_oi,oj):
-    for oi, oj in ordenes_conflictivas:
+    for oi, oj in range(data.ordenes_conflictivas):
         for t in range(data.cantidad_trabajadores):
             for h in range(4): #usamos range(4) para evitar que exceda el número de turnos. Si la orden conflictiva se hace en el 5to turno, entonces no hay problema.
                 for d in range(6):
@@ -202,7 +183,7 @@ def add_constraint_matrix(my_problem, data):
                     my_problem.linear_constraints.add(lin_expr=[cplex.SparsePair(ind=indices, val=values)], senses=['L'], rhs=[1])
 
     # Repito lo anterior pero para que incluya las restricciones de los conflictos permutando el orden de oi,oj:
-    for oi, oj in ordenes_conflictivas:
+    for oi, oj in range(data.ordenes_conflictivas):
         for t in range(data.cantidad_trabajadores):
             for h in range(4): #usamos range(4) para evitar que exceda el número de turnos. Si la orden conflictiva se hace en el 5to turno, entonces no hay problema.
                 for d in range(6):
@@ -211,7 +192,7 @@ def add_constraint_matrix(my_problem, data):
                     my_problem.linear_constraints.add(lin_expr=[cplex.SparsePair(ind=indices, val=values)], senses=['L'], rhs=[1])
     
     # 7) Hay pares de órdenes de trabajo correlativas oi,oj tal que si se resuelve la orden oi, entonces debe resolverse oj ese mismo día en el turno consecutivo:
-    for oi, oj in ordenes_correlativas:
+    for oi, oj in range(data.ordenes_correlativas):
         for h in range(4):
             for d in range (6):
                 for t in range(data.cantidad_trabajadores):
@@ -258,14 +239,92 @@ def add_constraint_matrix(my_problem, data):
         values.append(-1.0)
         my_problem.linear_constraints.add(lin_expr=[cplex.SparsePair(ind=indices, val=values)], senses=['E'], rhs=[0]) 
 
-    # 10)
+    # 10) Se crea la variable Yn,t para identificar el grupo de remuneración n al que corresponde el trabajador t :
+    # Se restringe la cantidad de variables de grupo de remuneración n por trabajador t para que solo 1 pueda estar prendida para el mismo t
+    for t in range(data.cantidad_trabajadores):
+        indices = []
+        values = []
+        for n in range(4):
+            indices.append(y_var[(t,n)])
+            values.append(1.0)
+            my_problem.linear_constraints.add(lin_expr=[cplex.SparsePair(ind=indices, val=values)], senses=['L'], rhs=[1])
+    
+    # Se generan la restricciones para la cantidad de ordenes de trabajo realizadas por trabajador t (Qt) segun una lógica de implicación y discretización
+    # región de Qt menor o igual a 5:
+    indices = []
+    values = []
+    for t in range(data.cantidad_trabajadores):
+        indices.append(q_var[t])
+        values.append(1.0)
+        indices.append(y_var[(t,1)])
+        values.append(data.M)
+        my_problem.linear_constraints.add(lin_expr=[cplex.SparsePair(ind=indices, val=values)], senses=['L'], rhs=[data.M + 5])
+    
+    # región de Qt mayor o igual a 6 y menor o igual a 10
+    indices = []
+    values = []
+    for t in range(data.cantidad_trabajadores):
+        indices.append(q_var[t])
+        values.append(-1.0)
+        indices.append(y_var[(t,2)])
+        values.append(-data.M)
+        my_problem.linear_constraints.add(lin_expr=[cplex.SparsePair(ind=indices, val=values)], senses=['L'], rhs=[data.M - 6])    
+    
+    indices = []
+    values = []
+    for t in range(data.cantidad_trabajadores):
+        indices.append(q_var[t])
+        values.append(1.0)
+        indices.append(y_var[(t,2)])
+        values.append(data.M)
+        my_problem.linear_constraints.add(lin_expr=[cplex.SparsePair(ind=indices, val=values)], senses=['L'], rhs=[data.M + 10])
 
-    # 11)
+    # región de Qt mayor o igual a 11 y menor o igual a 15
+    indices = []
+    values = []
+    for t in range(data.cantidad_trabajadores):
+        indices.append(q_var[t])
+        values.append(-1.0)
+        indices.append(y_var[(t,3)])
+        values.append(-data.M)
+        my_problem.linear_constraints.add(lin_expr=[cplex.SparsePair(ind=indices, val=values)], senses=['L'], rhs=[data.M - 11])      
+
+    indices = []
+    values = []
+    for t in range(data.cantidad_trabajadores):
+        indices.append(q_var[t])
+        values.append(1.0)
+        indices.append(y_var[(t,3)])
+        values.append(data.M)
+        my_problem.linear_constraints.add(lin_expr=[cplex.SparsePair(ind=indices, val=values)], senses=['L'], rhs=[data.M + 15])
+
+    # región mayor a 15
+    indices = []
+    values = []
+    for t in range(data.cantidad_trabajadores):
+        indices.append(q_var[t])
+        values.append(-1.0)
+        indices.append(y_var[(t,4)])
+        values.append(-data.M)
+        my_problem.linear_constraints.add(lin_expr=[cplex.SparsePair(ind=indices, val=values)], senses=['L'], rhs=[data.M - 16])     
+
+    # 11) Se arma la variable QYn,t como la multiplicación de Qt y Yn,t para que sea la variable a introducir en la función objetivo.
+    for t in range(data.cantidad_trabajadores):
+        indices = []
+        values = []
+        for n in range(n):
+            indices.append(qy_var[(t,n)])
+            values.append(1.0)
+            indices.append(y_var[(t,n)])
+            values.append(1.0)
+        indices.append(q_var[t])
+        values.append(-1.0)
+        my_problem.linear_constraints.add(lin_expr=[cplex.SparsePair(ind=indices, val=values)], senses=['E'], rhs=[0])
 
     ## Restricciones Deseables
 
     # 12) Hay pares de trabajadores ti,tj que tienen conflictos que prefieren no ser asignados a una misma orden de trabajo:
-    for ti, tj in conflictos_trabajadores:
+    for ti, tj in range(data.conflictos_trabajadores):
         for o in range(data.cantidad_ordenes):
             indices = []
             values = []            
@@ -278,7 +337,7 @@ def add_constraint_matrix(my_problem, data):
         my_problem.linear_constraints.add(lin_expr=[cplex.SparsePair(ind=indices, val=values)],senses=['L'],rhs=[1])
 
     # 13) Hay pares de órdenes oi,oj que son repetitivas por lo que sería bueno que un mismo trabajador no sea asignado a ambas:
-    for oi, oj in ordenes_repetitivas:
+    for oi, oj in range(data.ordenes_repetitivas):
         for t in range(data.cantidad_trabajadores):
             indices = []
             values = []
@@ -296,7 +355,7 @@ def populate_by_row(my_problem, data):
     s_var = {}  # variable binaria que vale 1 si el trabajador “t” trabajó en el día “d”, y 0 en caso contrario. 
     y_var = {}  # variable binaria que vale 1 si el trabajador “t” se encuentra en el grupo de remuneración “n” y 0 en caso contrario.
     q_var = {}  # variable continua que representa la cantidad total de órdenes de trabajo realizadas por trabajador “t”.
-    qv_var = {} # variable continua que tiene la cantidad de órdenes totales realizadas por el trabajador “t” en el grupo de remuneración “n”
+    qy_var = {} # variable continua que tiene la cantidad de órdenes totales realizadas por el trabajador “t” en el grupo de remuneración “n”
 
     # Agrego variables binarias base que representan si el trabajador t, realizo la orden o, durante el turno h y dia d:
     names_x = []
@@ -329,15 +388,14 @@ def populate_by_row(my_problem, data):
 
     
     # Añadir las variables binarias a CPLEX
-    beneficios = [orden.beneficio for orden in instance.ordenes]
+    beneficios = [data.ordenes.beneficio for orden in data.ordenes]
     my_problem.variables.add(
         names=names_w,               # Nombres de las variables
-        obj = beneficios        # Coeficientes utilizados en la función objetivo, son los valores del beneficio de cada orden
+        obj = beneficios,        # Coeficientes utilizados en la función objetivo, son los valores del beneficio de cada orden
         types=['B'] * len(names_w),  # Definir todas como binarias
         lb=[0.0] * len(names_w),     # Límite inferior (0)
         ub=[1.0] * len(names_w)      # Límite superior (1)
     )
-
 
     # Agrego variables binarias (S) que representan si el trabajador t trabajo el dia d:
     names_s = []
