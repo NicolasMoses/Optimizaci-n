@@ -25,7 +25,8 @@ class FieldWorkAssignment:
         self.ordenes_correlativas = []
         self.ordenes_conflictivas = []
         self.ordenes_repetitivas = []
-        
+        #self.cantidad_dias = 6 #Ver si ésto lo dejamos así o hacemos que lo lea del .txt (en ese caso, hay que editar más abajo para que lo lea de una row)
+        #self.cantidad_turnos = 5 #Ver si ésto lo dejamos así o hacemos que lo lea del .txt (en ese caso, hay que editar más abajo para que lo lea de una row)
 
     def load(self,filename):
         # Abrimos el archivo.
@@ -72,7 +73,6 @@ class FieldWorkAssignment:
             row = f.readline().split(' ')
             self.ordenes_conflictivas.append(list(map(int,row)))
         
-        
         # Leemos la cantidad de ordenes repetitivas
         cantidad_ordenes_repetitivas = int(f.readline())
         
@@ -103,14 +103,12 @@ def add_constraint_matrix(my_problem, data):
     
 
 def populate_by_row(my_problem, data):
-
     x_var = {}
     w_var = {}
     s_var = {}
     y_var = {}
     q_var = {}
     qv_var = {}
-
 
     # Agrego variables binarias base que representan si el trabajador t, realizo la orden o, durante el turno h y dia d:
     names_x = []
