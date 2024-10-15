@@ -468,7 +468,9 @@ def populate_by_row(my_problem, data):
     # Seteamos direccion del problema
     # ~ my_problem.objective.set_sense(my_problem.objective.sense.maximize)
     # ~ my_problem.objective.set_sense(my_problem.objective.sense.minimize)
-
+    print(x_var)
+    print(w_var)
+    print(f"Cantidad de órdenes: {data.cantidad_ordenes}")
     # Definimos las restricciones del modelo. Encapsulamos esto en una funcion. 
     add_constraint_matrix(my_problem, data, x_var, y_var, s_var, w_var, q_var, qy_var)
 
