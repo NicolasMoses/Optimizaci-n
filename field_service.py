@@ -160,7 +160,7 @@ def populate_by_row(my_problem, data):
     # Agrego variables binarias (Y) que representan la categoria de numero de dias trabajados en la que se encuentra el trabajador t:
     names_y = []
     for t in range(data.cantidad_trabajadores):
-        for n in range(4):
+        for n in range(1,5):
             # Crear nombres únicos para cada variable
             variable_name = f"Y_{n}_{t}"
             names_y.append(variable_name)
@@ -191,7 +191,7 @@ def populate_by_row(my_problem, data):
     # Por ultimo, defino una variable mas que sea la multiplicación de Q_t y Y_t_n:
     names_qy = []
     for t in range(data.cantidad_trabajadores):
-        for n in range(4):
+        for n in range(1,5):
             variable_name = f"QY_{t}_{n}"
             names_qy.append(variable_name)
             qy_var[(t,n)] = variable_name
@@ -372,7 +372,7 @@ def add_constraint_matrix(my_problem, data, x_var, y_var, s_var, w_var, q_var, q
     for t in range(data.cantidad_trabajadores):
         indices = []
         values = []
-        for n in range(4):
+        for n in range(1,5):
             indices.append(y_var[(t,n)])
             values.append(1.0)
         my_problem.linear_constraints.add(lin_expr=[cplex.SparsePair(ind=indices, val=values)], senses=['E'], rhs=[1])
