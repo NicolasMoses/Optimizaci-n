@@ -207,9 +207,6 @@ def populate_by_row(my_problem, data):
     # Seteamos direccion del problema
     # ~ my_problem.objective.set_sense(my_problem.objective.sense.maximize)
     # ~ my_problem.objective.set_sense(my_problem.objective.sense.minimize)
-    print(w_var)
-    print(w_var[2])
-    print(f"Cantidad de órdenes: {data.cantidad_ordenes}")
     # Definimos las restricciones del modelo. Encapsulamos esto en una funcion. 
     add_constraint_matrix(my_problem, data, x_var, y_var, s_var, w_var, q_var, qy_var)
 
@@ -218,7 +215,7 @@ def populate_by_row(my_problem, data):
     my_problem.write('balanced_assignment.lp')
 
 
-def add_constraint_matrix(my_problem, data, x_var, y_var, w_var, s_var, q_var, qy_var):
+def add_constraint_matrix(my_problem, data, x_var, y_var, s_var, w_var, q_var, qy_var):
 
 ## Restricciones de factibilidad
     # 1) Cada trabajador (t) solo puede estar haciendo una órden (o) por turno (h) por día (d):
@@ -238,7 +235,6 @@ def add_constraint_matrix(my_problem, data, x_var, y_var, w_var, s_var, q_var, q
 
     # 2) Cuando una órden (o) es realizada (w_var = 1), esta se realiza con la asignación de la cantidad de trabajadores necesarios para resolver la órden T_o:
     for o in range(data.cantidad_ordenes):
-        print(w_var[2])
         indices = []
         values = []
         for t in range(data.cantidad_trabajadores):
