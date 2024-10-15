@@ -321,29 +321,38 @@ def add_constraint_matrix(my_problem, data, x_var, y_var, s_var, w_var, q_var, q
 
     # 8) La diferencia entre el trabajador con más órdenes asignadas en la semana y el trabajador con menos órdenes no puede ser mayor a 10:
     for ti in range(data.cantidad_trabajadores):
-            for tj in range(ti, data.cantidad_trabajadores):
-                indices_ti = []
-                indices_tj = []
-                values_ti = []
-                values_tj = []
-                # Sumamos todas las órdenes asignadas a cada ti y tj
-                for o in range(data.cantidad_ordenes):
-                    for h in range(5):
-                        for d in range(6):
-                            indices_ti.append(x_var[(ti, o, h, d)])
-                            indices_tj.append(x_var[(tj, o, h, d)])
-                            values_ti.append(1.0)
-                            values_tj.append(1.0) 
-                            
-            # Primera parte: ti - tj <= 10
-            indices = indices_ti + indices_tj
-            values = values_ti + [-v for v in values_tj]  # los coeficientes son 1 para los ti y -1 para los tj
-            my_problem.linear_constraints.add(lin_expr=[cplex.SparsePair(ind=indices, val=values)],senses=['L'],rhs=[10])
+        for tj in range(ti + 1, data.cantidad_trabajadores):  # ti != tj, eliminamos el caso ti = tj
+            indices_ti = []
+            indices_tj = []
+            values_ti = []
+            values_tj = []
+    
+            # Sumamos todas las órdenes asignadas a cada ti y tj
+            for o in range(data.cantidad_ordenes):
+                for h in range(5):
+                    for d in range(6):
+                        indices_ti.append(x_var[(ti, o, h, d)])
+                        indices_tj.append(x_var[(tj, o, h, d)])
+                        values_ti.append(1.0)
+                        values_tj.append(1.0) 
             
-            # Segunda parte: tj - ti <= 10
-            indices = indices_ti + indices_tj
-            values = [-v for v in values_ti] + values_tj  # los coeficientes son 1 para los tj y -1 para los ti
-            my_problem.linear_constraints.add(lin_expr=[cplex.SparsePair(ind=indices, val=values)], senses=['L'], rhs=[10])
+            # Restricción 1: ti - tj <= 10
+            indices_1 = indices_ti + indices_tj
+            values_1 = values_ti + [-v for v in values_tj]  # coeficientes son 1 para ti y -1 para tj
+            my_problem.linear_constraints.add(
+                lin_expr=[cplex.SparsePair(ind=indices_1, val=values_1)],
+                senses=['L'],
+                rhs=[10]
+            )
+    
+            # Restricción 2: tj - ti <= 10
+            indices_2 = indices_ti + indices_tj
+            values_2 = [-v for v in values_ti] + values_tj  # coeficientes son -1 para ti y 1 para tj
+            my_problem.linear_constraints.add(
+                lin_expr=[cplex.SparsePair(ind=indices_2, val=values_2)],
+                senses=['L'],
+                rhs=[10]
+            )
 
     # 9) Se crea una variable Q_t que mide la cantidad de órdenes realizadas por trabajador durante toda la semana:
     for t in range(data.cantidad_trabajadores):
