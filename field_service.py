@@ -15,7 +15,6 @@ class Orden:
         self.beneficio = int(row[1])
         self.trabajadores_necesarios = int(row[2])
         
-
 class FieldWorkAssignment:
     def __init__(self):
         self.cantidad_trabajadores = 0
@@ -162,7 +161,7 @@ def populate_by_row(my_problem, data):
     for t in range(data.cantidad_trabajadores):
         for n in range(1,5):
             # Crear nombres únicos para cada variable
-            variable_name = f"Y_{n}_{t}"
+            variable_name = f"Y_{t}_{n}"
             names_y.append(variable_name)
             y_var[(t,n)] = variable_name
 
@@ -207,7 +206,7 @@ def populate_by_row(my_problem, data):
     # Seteamos direccion del problema
     # ~ my_problem.objective.set_sense(my_problem.objective.sense.maximize)
     # ~ my_problem.objective.set_sense(my_problem.objective.sense.minimize)
-    # Definimos las restricciones del modelo. Encapsulamos esto en una funcion. 
+    # Definimos las restricciones del modelo. Encapsulamos esto en una funcion.
     add_constraint_matrix(my_problem, data, x_var, y_var, s_var, w_var, q_var, qy_var)
 
     # Exportamos el LP cargado en myprob con formato .lp. 
@@ -440,7 +439,7 @@ def add_constraint_matrix(my_problem, data, x_var, y_var, s_var, w_var, q_var, q
     for t in range(data.cantidad_trabajadores):
         indices = []
         values = []
-        for n in range(n):
+        for n in range(1,5):
             indices.append(qy_var[(t,n)])
             values.append(1.0)
             indices.append(y_var[(t,n)])
