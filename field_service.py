@@ -114,6 +114,7 @@ def add_constraint_matrix(my_problem, data, x_var, y_var, w_var, s_var, q_var, q
 
     # 2) Cuando una órden (o) es realizada (w_var = 1), esta se realiza con la asignación de la cantidad de trabajadores necesarios para resolver la órden T_o:
     for o in range(data.cantidad_ordenes):
+        print(w_var[o])
         indices = []
         values = []
         for t in range(data.cantidad_trabajadores):
