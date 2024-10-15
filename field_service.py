@@ -316,7 +316,7 @@ def add_constraint_matrix(my_problem, data, x_var, y_var, s_var, w_var, q_var, q
             for d in range (6):
                 for t in range(data.cantidad_trabajadores):
                     indices = [x_var[(t, oi, h, d)], x_var[(t, oj, h+1, d)]]
-                    values=[1/data['trabajadores_necesarios'][oi],-1/data['trabajadores_necesarios'][oj]]
+                    values=[1/data.ordenes[oi].trabajadores_necesarios,-1/data.ordenes[oj].trabajadores_necesarios]
                     my_problem.linear_constraints.add(lin_expr=[cplex.SparsePair(ind=indices, val=values)], senses=['L'], rhs=[0])
 
     # 8) La diferencia entre el trabajador con más órdenes asignadas en la semana y el trabajador con menos órdenes no puede ser mayor a 10:
