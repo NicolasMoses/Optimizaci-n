@@ -324,30 +324,30 @@ def add_constraint_matrix(my_problem, data, x_var, y_var, w_var, s_var, q_var, q
     ## Restricciones Deseables
 
     # 12) Hay pares de trabajadores ti,tj que tienen conflictos que prefieren no ser asignados a una misma orden de trabajo:
-    for ti, tj in data.conflictos_trabajadores:
-        for o in range(data.cantidad_ordenes):
-            indices = []
-            values = []            
-            for h in range(5):
-                for d in range(6):
-                    indices.append(x_var[(ti, o, h, d)])
-                    values.append(1.0) 
-                    indices.append(x_var[(tj, o, h, d)])
-                    values.append(1.0)
-        my_problem.linear_constraints.add(lin_expr=[cplex.SparsePair(ind=indices, val=values)],senses=['L'],rhs=[1])
+    #for ti, tj in data.conflictos_trabajadores:
+        #for o in range(data.cantidad_ordenes):
+            #indices = []
+            #values = []            
+            #for h in range(5):
+                #for d in range(6):
+                    #indices.append(x_var[(ti, o, h, d)])
+                    #values.append(1.0) 
+                    #indices.append(x_var[(tj, o, h, d)])
+                    #values.append(1.0)
+        #my_problem.linear_constraints.add(lin_expr=[cplex.SparsePair(ind=indices, val=values)],senses=['L'],rhs=[1])
 
     # 13) Hay pares de órdenes oi,oj que son repetitivas por lo que sería bueno que un mismo trabajador no sea asignado a ambas:
-    for oi, oj in data.ordenes_repetitivas:
-        for t in range(data.cantidad_trabajadores):
-            indices = []
-            values = []
-            for h in range(5):
-                for d in range(6):
-                    indices.append(x_var[(t, oi, h, d)])
-                    values.append(1.0) 
-                    indices.append(x_var[(t, oj, h, d)])
-                    values.append(1.0)
-            my_problem.linear_constraints.add(lin_expr=[cplex.SparsePair(ind=indices, val=values)],senses=['L'],rhs=[1])
+    #for oi, oj in data.ordenes_repetitivas:
+        #for t in range(data.cantidad_trabajadores):
+            #indices = []
+            #values = []
+            #for h in range(5):
+                #for d in range(6):
+                    #indices.append(x_var[(t, oi, h, d)])
+                    #values.append(1.0) 
+                    #indices.append(x_var[(t, oj, h, d)])
+                    #values.append(1.0)
+            #my_problem.linear_constraints.add(lin_expr=[cplex.SparsePair(ind=indices, val=values)],senses=['L'],rhs=[1])
 
 def populate_by_row(my_problem, data):
     x_var = {}  # variable binaria que vale 1 si el trabajador “t” realizó la orden “o” en el turno “h” en el día “d”, y 0 en caso contrario. 
