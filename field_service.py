@@ -386,7 +386,9 @@ def populate_by_row(my_problem, data):
 
     
     # Añadir las variables binarias a CPLEX
-    beneficios = [data.ordenes.beneficio for orden in data.ordenes]
+    beneficios = []
+    for o in range(data.cantidad_ordenes):
+        beneficios.append(data.ordenes[o].beneficio)
     my_problem.variables.add(
         names=names_w,               # Nombres de las variables
         obj = beneficios,        # Coeficientes utilizados en la función objetivo, son los valores del beneficio de cada orden
