@@ -91,12 +91,136 @@ def get_instance_data():
     instance.load(file_location)
     return instance
     
+def populate_by_row(my_problem, data):
+    x_var = {}  # variable binaria que vale 1 si el trabajador “t” realizó la orden “o” en el turno “h” en el día “d”, y 0 en caso contrario. 
+    w_var = {}  # variable binaria que vale 1 si la orden o_i fue realizada, y 0 en caso contrario.
+    s_var = {}  # variable binaria que vale 1 si el trabajador “t” trabajó en el día “d”, y 0 en caso contrario. 
+    y_var = {}  # variable binaria que vale 1 si el trabajador “t” se encuentra en el grupo de remuneración “n” y 0 en caso contrario.
+    q_var = {}  # variable continua que representa la cantidad total de órdenes de trabajo realizadas por trabajador “t”.
+    qy_var = {} # variable continua que tiene la cantidad de órdenes totales realizadas por el trabajador “t” en el grupo de remuneración “n”
+
+    # Agrego variables binarias base que representan si el trabajador t, realizo la orden o, durante el turno h y dia d:
+    names_x = []
+    for t in range(data.cantidad_trabajadores):
+        for o in range(data.cantidad_ordenes):
+            for h in range(5):
+                for d in range(6):
+                    # Crear nombres únicos para cada variable
+                    variable_name = f"X_{t}_{o}_{h}_{d}"
+                    names_x.append(variable_name)
+                    x_var[(t,o,h,d)] = variable_name
+
+    # Añadir las variables binarias a CPLEX
+    my_problem.variables.add(
+        names=names_x,     # Nombres de las variables
+        types=['B'] * len(names_x),  # Definir todas como binarias
+        lb=[0.0] * len(names_x),     # Límite inferior (0)
+        ub=[1.0] * len(names_x)      # Límite superior (1)
+    )
+
+    # Agrego variables binarias (W) que representan si la orden fue realizada o no:
+    names_w = []
+    for o in range(data.cantidad_ordenes):
+        # Crear nombres únicos para cada variable
+        variable_name = f"W_{o}"
+        names_w.append(variable_name)
+        w_var[o] = variable_name
+
+
+    
+    # Añadir las variables binarias a CPLEX
+    beneficios = []
+    for o in range(data.cantidad_ordenes):
+        beneficios.append(data.ordenes[o].beneficio)
+    my_problem.variables.add(
+        names=names_w,               # Nombres de las variables
+        obj = beneficios,        # Coeficientes utilizados en la función objetivo, son los valores del beneficio de cada orden
+        types=['B'] * len(names_w),  # Definir todas como binarias
+        lb=[0.0] * len(names_w),     # Límite inferior (0)
+        ub=[1.0] * len(names_w)      # Límite superior (1)
+    )
+
+    # Agrego variables binarias (S) que representan si el trabajador t trabajo el dia d:
+    names_s = []
+    for t in range(data.cantidad_trabajadores):
+        for d in range(6):
+            # Crear nombres únicos para cada variable
+            variable_name = f"S_{t}_{d}"
+            names_s.append(variable_name)
+            s_var[(t,d)] = variable_name
+
+    # Añadir las variables binarias a CPLEX
+    my_problem.variables.add(
+        names=names_s,     # Nombres de las variables
+        types=['B'] * len(names_s),  # Definir todas como binarias
+        lb=[0.0] * len(names_s),     # Límite inferior (0)
+        ub=[1.0] * len(names_s)      # Límite superior (1)
+    )
+    
+    # Agrego variables binarias (Y) que representan la categoria de numero de dias trabajados en la que se encuentra el trabajador t:
+    names_y = []
+    for t in range(data.cantidad_trabajadores):
+        for n in range(4):
+            # Crear nombres únicos para cada variable
+            variable_name = f"Y_{n}_{t}"
+            names_y.append(variable_name)
+            y_var[(t,n)] = variable_name
+
+    # Añadir las variables binarias a CPLEX
+    my_problem.variables.add(
+        names=names_y,     # Nombres de las variables
+        types=['B'] * len(names_y),  # Definir todas como binarias
+        lb=[0.0] * len(names_y),     # Límite inferior (0)
+        ub=[1.0] * len(names_y)      # Límite superior (1)
+    )
+
+    #Ahora defino una variable nueva que representa la cantidad de ordenes ejecutada por cada trabajador t:
+    names_q = []
+    for t in range(data.cantidad_trabajadores):
+        variable_name = f"Q_{t}"  # Cantidad de órdenes ejecutadas por trabajador t
+        names_q.append(variable_name)
+        q_var[t] = variable_name
+
+    my_problem.variables.add(
+        names=names_q,
+        types=['C'] * len(names_q),  # Definir como continua
+        lb=[0.0] * len(names_q),      # Límite inferior (0)
+        ub=[data.cantidad_ordenes] * len(names_q)  # Límite superior (número máximo de órdenes)
+    )
+
+    # Por ultimo, defino una variable mas que sea la multiplicación de Q_t y Y_t_n:
+    names_qy = []
+    for t in range(data.cantidad_trabajadores):
+        for n in range(4):
+            variable_name = f"QY_{t}_{n}"
+            names_qy.append(variable_name)
+            qy_var[(t,n)] = variable_name
+
+    my_problem.variables.add(
+        names=names_qy,
+        types=['C'] * len(names_qy),  
+        lb=[0.0] * len(names_qy),      # Límite inferior (0)
+        ub=[data.cantidad_ordenes] * len(names_qy),  # Límite superior (número máximo de órdenes)
+        obj=[-1000,-1200,-1400,-1500] * data.cantidad_trabajadores
+    )
+    
+    # Seteamos direccion del problema
+    # ~ my_problem.objective.set_sense(my_problem.objective.sense.maximize)
+    # ~ my_problem.objective.set_sense(my_problem.objective.sense.minimize)
+    print(w_var)
+    print(w_var[2])
+    print(f"Cantidad de órdenes: {data.cantidad_ordenes}")
+    # Definimos las restricciones del modelo. Encapsulamos esto en una funcion. 
+    add_constraint_matrix(my_problem, data, x_var, y_var, s_var, w_var, q_var, qy_var)
+
+    # Exportamos el LP cargado en myprob con formato .lp. 
+    # Util para debug.
+    my_problem.write('balanced_assignment.lp')
+
 
 def add_constraint_matrix(my_problem, data, x_var, y_var, w_var, s_var, q_var, qy_var):
 
-
-    ## Restricciones de factibilidad
-        
+## Restricciones de factibilidad
     # 1) Cada trabajador (t) solo puede estar haciendo una órden (o) por turno (h) por día (d):
     for t in range(data.cantidad_trabajadores):
         for h in range(5):
@@ -114,7 +238,7 @@ def add_constraint_matrix(my_problem, data, x_var, y_var, w_var, s_var, q_var, q
 
     # 2) Cuando una órden (o) es realizada (w_var = 1), esta se realiza con la asignación de la cantidad de trabajadores necesarios para resolver la órden T_o:
     for o in range(data.cantidad_ordenes):
-        print(w_var[o])
+        print(w_var[2])
         indices = []
         values = []
         for t in range(data.cantidad_trabajadores):
@@ -320,7 +444,7 @@ def add_constraint_matrix(my_problem, data, x_var, y_var, w_var, s_var, q_var, q
         values.append(-1.0)
         my_problem.linear_constraints.add(lin_expr=[cplex.SparsePair(ind=indices, val=values)], senses=['E'], rhs=[0])
 
-    ## Restricciones Deseables
+# Restricciones Deseables
 
     # 12) Hay pares de trabajadores ti,tj que tienen conflictos que prefieren no ser asignados a una misma orden de trabajo:
     #for ti, tj in data.conflictos_trabajadores:
@@ -347,137 +471,6 @@ def add_constraint_matrix(my_problem, data, x_var, y_var, w_var, s_var, q_var, q
                     #indices.append(x_var[(t, oj, h, d)])
                     #values.append(1.0)
             #my_problem.linear_constraints.add(lin_expr=[cplex.SparsePair(ind=indices, val=values)],senses=['L'],rhs=[1])
-
-def populate_by_row(my_problem, data):
-    x_var = {}  # variable binaria que vale 1 si el trabajador “t” realizó la orden “o” en el turno “h” en el día “d”, y 0 en caso contrario. 
-    w_var = {}  # variable binaria que vale 1 si la orden o_i fue realizada, y 0 en caso contrario.
-    s_var = {}  # variable binaria que vale 1 si el trabajador “t” trabajó en el día “d”, y 0 en caso contrario. 
-    y_var = {}  # variable binaria que vale 1 si el trabajador “t” se encuentra en el grupo de remuneración “n” y 0 en caso contrario.
-    q_var = {}  # variable continua que representa la cantidad total de órdenes de trabajo realizadas por trabajador “t”.
-    qy_var = {} # variable continua que tiene la cantidad de órdenes totales realizadas por el trabajador “t” en el grupo de remuneración “n”
-
-    # Agrego variables binarias base que representan si el trabajador t, realizo la orden o, durante el turno h y dia d:
-    names_x = []
-    for t in range(data.cantidad_trabajadores):
-        for o in range(data.cantidad_ordenes):
-            for h in range(5):
-                for d in range(6):
-                    # Crear nombres únicos para cada variable
-                    variable_name = f"X_{t}_{o}_{h}_{d}"
-                    names_x.append(variable_name)
-                    x_var[(t,o,h,d)] = variable_name
-
-    # Añadir las variables binarias a CPLEX
-    my_problem.variables.add(
-        names=names_x,     # Nombres de las variables
-        types=['B'] * len(names_x),  # Definir todas como binarias
-        lb=[0.0] * len(names_x),     # Límite inferior (0)
-        ub=[1.0] * len(names_x)      # Límite superior (1)
-    )
-
-
-    # Agrego variables binarias (W) que representan si la orden fue realizada o no:
-    names_w = []
-    for o in range(data.cantidad_ordenes):
-        # Crear nombres únicos para cada variable
-        variable_name = f"W_{o}"
-        names_w.append(variable_name)
-        w_var[o] = variable_name
-
-
-    
-    # Añadir las variables binarias a CPLEX
-    beneficios = []
-    for o in range(data.cantidad_ordenes):
-        beneficios.append(data.ordenes[o].beneficio)
-    my_problem.variables.add(
-        names=names_w,               # Nombres de las variables
-        obj = beneficios,        # Coeficientes utilizados en la función objetivo, son los valores del beneficio de cada orden
-        types=['B'] * len(names_w),  # Definir todas como binarias
-        lb=[0.0] * len(names_w),     # Límite inferior (0)
-        ub=[1.0] * len(names_w)      # Límite superior (1)
-    )
-
-    # Agrego variables binarias (S) que representan si el trabajador t trabajo el dia d:
-    names_s = []
-    for t in range(data.cantidad_trabajadores):
-        for d in range(6):
-            # Crear nombres únicos para cada variable
-            variable_name = f"S_{t}_{d}"
-            names_s.append(variable_name)
-            s_var[(t,d)] = variable_name
-
-    # Añadir las variables binarias a CPLEX
-    my_problem.variables.add(
-        names=names_s,     # Nombres de las variables
-        types=['B'] * len(names_s),  # Definir todas como binarias
-        lb=[0.0] * len(names_s),     # Límite inferior (0)
-        ub=[1.0] * len(names_s)      # Límite superior (1)
-    )
-    
-
-    # Agrego variables binarias (Y) que representan la categoria de numero de dias trabajados en la que se encuentra el trabajador t:
-    names_y = []
-    for t in range(data.cantidad_trabajadores):
-        for n in range(4):
-            # Crear nombres únicos para cada variable
-            variable_name = f"Y_{n}_{t}"
-            names_y.append(variable_name)
-            y_var[(t,n)] = variable_name
-
-    # Añadir las variables binarias a CPLEX
-    my_problem.variables.add(
-        names=names_y,     # Nombres de las variables
-        types=['B'] * len(names_y),  # Definir todas como binarias
-        lb=[0.0] * len(names_y),     # Límite inferior (0)
-        ub=[1.0] * len(names_y)      # Límite superior (1)
-    )
-
-
-    #Ahora defino una variable nueva que representa la cantidad de ordenes ejecutada por cada trabajador t:
-    names_q = []
-    for t in range(data.cantidad_trabajadores):
-        variable_name = f"Q_{t}"  # Cantidad de órdenes ejecutadas por trabajador t
-        names_q.append(variable_name)
-        q_var[t] = variable_name
-
-    my_problem.variables.add(
-        names=names_q,
-        types=['C'] * len(names_q),  # Definir como continua
-        lb=[0.0] * len(names_q),      # Límite inferior (0)
-        ub=[data.cantidad_ordenes] * len(names_q)  # Límite superior (número máximo de órdenes)
-    )
-
-
-    # Por ultimo, defino una variable mas que sea la multiplicación de Q_t y Y_t_n:
-    names_qy = []
-    for t in range(data.cantidad_trabajadores):
-        for n in range(4):
-            variable_name = f"QY_{t}_{n}"
-            names_qy.append(variable_name)
-            qy_var[(t,n)] = variable_name
-
-    my_problem.variables.add(
-        names=names_qy,
-        types=['C'] * len(names_qy),  
-        lb=[0.0] * len(names_qy),      # Límite inferior (0)
-        ub=[data.cantidad_ordenes] * len(names_qy),  # Límite superior (número máximo de órdenes)
-        obj=[-1000,-1200,-1400,-1500] * data.cantidad_trabajadores
-    )
-
-
-    # Seteamos direccion del problema
-    # ~ my_problem.objective.set_sense(my_problem.objective.sense.maximize)
-    # ~ my_problem.objective.set_sense(my_problem.objective.sense.minimize)
-    print(x_var)
-    print(w_var)
-    print(f"Cantidad de órdenes: {data.cantidad_ordenes}")
-    # Definimos las restricciones del modelo. Encapsulamos esto en una funcion. 
-    add_constraint_matrix(my_problem, data, x_var, y_var, s_var, w_var, q_var, qy_var)
-
-    # Exportamos el LP cargado en myprob con formato .lp. 
-    # Util para debug.
-    my_problem.write('balanced_assignment.lp')
 
 def solve_lp(my_problem, data):
     
