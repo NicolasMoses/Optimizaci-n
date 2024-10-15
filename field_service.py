@@ -26,8 +26,6 @@ class FieldWorkAssignment:
         self.ordenes_conflictivas = []
         self.ordenes_repetitivas = []
         self.M = 200
-        #self.cantidad_dias = 6 #Ver si ésto lo dejamos así o hacemos que lo lea del .txt (en ese caso, hay que editar más abajo para que lo lea de una row)
-        #self.cantidad_turnos = 5 #Ver si ésto lo dejamos así o hacemos que lo lea del .txt (en ese caso, hay que editar más abajo para que lo lea de una row)
 
     def load(self,filename):
         # Abrimos el archivo.
