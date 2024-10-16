@@ -380,9 +380,10 @@ def add_constraint_matrix(my_problem, data, x_var, y_var, s_var, w_var, q_var, q
     
     # Se generan la restricciones para la cantidad de ordenes de trabajo realizadas por trabajador t (Qt) segun una lógica de implicación y discretización
     # región de Qt menor o igual a 5:
-    indices = []
-    values = []
+
     for t in range(data.cantidad_trabajadores):
+        indices = []
+        values = []
         indices.append(q_var[t])
         values.append(1.0)
         indices.append(y_var[(t,1)])
@@ -390,18 +391,20 @@ def add_constraint_matrix(my_problem, data, x_var, y_var, s_var, w_var, q_var, q
         my_problem.linear_constraints.add(lin_expr=[cplex.SparsePair(ind=indices, val=values)], senses=['L'], rhs=[data.M + 5], names=[f"Q_{t}_5"])
     
     # región de Qt mayor o igual a 6 y menor o igual a 10
-    indices = []
-    values = []
+
     for t in range(data.cantidad_trabajadores):
+        indices = []
+        values = []
         indices.append(q_var[t])
         values.append(-1.0)
         indices.append(y_var[(t,2)])
         values.append(-data.M)
         my_problem.linear_constraints.add(lin_expr=[cplex.SparsePair(ind=indices, val=values)], senses=['L'], rhs=[data.M - 6], names=[f"Q_{t}_6"])    
     
-    indices = []
-    values = []
+
     for t in range(data.cantidad_trabajadores):
+        indices = []
+        values = []
         indices.append(q_var[t])
         values.append(1.0)
         indices.append(y_var[(t,2)])
@@ -409,9 +412,10 @@ def add_constraint_matrix(my_problem, data, x_var, y_var, s_var, w_var, q_var, q
         my_problem.linear_constraints.add(lin_expr=[cplex.SparsePair(ind=indices, val=values)], senses=['L'], rhs=[data.M + 10], names=[f"Q_{t}_10"])
 
     # región de Qt mayor o igual a 11 y menor o igual a 15
-    indices = []
-    values = []
+
     for t in range(data.cantidad_trabajadores):
+        indices = []
+        values = []
         indices.append(q_var[t])
         values.append(-1.0)
         indices.append(y_var[(t,3)])
@@ -419,9 +423,9 @@ def add_constraint_matrix(my_problem, data, x_var, y_var, s_var, w_var, q_var, q
         my_problem.linear_constraints.add(lin_expr=[cplex.SparsePair(ind=indices, val=values)], senses=['L'], rhs=[data.M - 11], names=[f"Q_{t}_11"]
 )      
 
-    indices = []
-    values = []
     for t in range(data.cantidad_trabajadores):
+        indices = []
+        values = []
         indices.append(q_var[t])
         values.append(1.0)
         indices.append(y_var[(t,3)])
@@ -430,9 +434,10 @@ def add_constraint_matrix(my_problem, data, x_var, y_var, s_var, w_var, q_var, q
 )
 
     # región mayor a 15
-    indices = []
-    values = []
+
     for t in range(data.cantidad_trabajadores):
+        indices = []
+        values = []
         indices.append(q_var[t])
         values.append(-1.0)
         indices.append(y_var[(t,4)])
@@ -441,45 +446,69 @@ def add_constraint_matrix(my_problem, data, x_var, y_var, s_var, w_var, q_var, q
 )     
 
     # 11) Se arma la variable QYn,t como la multiplicación de Qt y Yn,t para que sea la variable a introducir en la función objetivo.
+
     for t in range(data.cantidad_trabajadores):
-        indices = []
-        values = []
-        for n in range(1,5):
+        for n in range (1,5):
+            indices = []
+            values = []
             indices.append(qy_var[(t,n)])
             values.append(1.0)
             indices.append(y_var[(t,n)])
+            values.append(-data.M)
+            my_problem.linear_constraints.add(lin_expr=[cplex.SparsePair(ind=indices, val=values)], senses=['L'], rhs=[0], names=[f"QY_1_{t,n}"])
+    
+
+    for t in range(data.cantidad_trabajadores):
+        for n in range(1,5):
+            indices = []
+            values = []
+            indices.append(qy_var[(t,n)])
             values.append(1.0)
-        indices.append(q_var[t])
-        values.append(-1.0)
-        my_problem.linear_constraints.add(lin_expr=[cplex.SparsePair(ind=indices, val=values)], senses=['E'], rhs=[0], names=[f"Sueldo_{t,n}"])
+            indices.append(q_var[t])
+            values.append(-1.0)
+            my_problem.linear_constraints.add(lin_expr=[cplex.SparsePair(ind=indices, val=values)], senses=['L'], rhs=[0], names=[f"QY_2_{t,n}"])
+    
+
+    for t in range(data.cantidad_trabajadores):
+        for n in range(1,5):
+            indices = []
+            values = []
+            indices.append(qy_var[(t,n)])
+            values.append(-1.0)
+            indices.append(y_var[(t,n)])
+            values.append(data.M)
+            indices.append(q_var[t])
+            values.append(1.0)
+            my_problem.linear_constraints.add(lin_expr=[cplex.SparsePair(ind=indices, val=values)], senses=['L'], rhs=[data.M], names=[f"QY_3_{t,n}"])
+
 
 # Restricciones Deseables
 
     # 12) Hay pares de trabajadores ti,tj que tienen conflictos que prefieren no ser asignados a una misma orden de trabajo:
-    #for ti, tj in data.conflictos_trabajadores:
-        #for o in range(data.cantidad_ordenes):
-            #indices = []
-            #values = []            
-            #for h in range(5):
-                #for d in range(6):
-                    #indices.append(x_var[(ti, o, h, d)])
-                    #values.append(1.0) 
-                    #indices.append(x_var[(tj, o, h, d)])
-                    #values.append(1.0)
-        #my_problem.linear_constraints.add(lin_expr=[cplex.SparsePair(ind=indices, val=values)],senses=['L'],rhs=[1], names=[f"Conflictivos_{ti,tj}"])
+    for ti, tj in data.conflictos_trabajadores:
+        for o in range(data.cantidad_ordenes):
+            indices = []
+            values = []            
+            for h in range(5):
+                for d in range(6):
+                    indices.append(x_var[(ti, o, h, d)])
+                    values.append(1.0) 
+                    indices.append(x_var[(tj, o, h, d)])
+                    values.append(1.0)
+        my_problem.linear_constraints.add(lin_expr=[cplex.SparsePair(ind=indices, val=values)],senses=['L'],rhs=[1], names=[f"Conflictivos_{ti,tj}"])
 
     # 13) Hay pares de órdenes oi,oj que son repetitivas por lo que sería bueno que un mismo trabajador no sea asignado a ambas:
-    #for oi, oj in data.ordenes_repetitivas:
-        #for t in range(data.cantidad_trabajadores):
-            #indices = []
-            #values = []
-            #for h in range(5):
-                #for d in range(6):
-                    #indices.append(x_var[(t, oi, h, d)])
-                    #values.append(1.0) 
-                    #indices.append(x_var[(t, oj, h, d)])
-                    #values.append(1.0)
-            #my_problem.linear_constraints.add(lin_expr=[cplex.SparsePair(ind=indices, val=values)],senses=['L'],rhs=[1], names=[f"Repetitiva_{oi,oj}"])
+    for oi, oj in data.ordenes_repetitivas:
+        for t in range(data.cantidad_trabajadores):
+            indices = []
+            values = []
+            for h in range(5):
+                for d in range(6):
+                    indices.append(x_var[(t, oi, h, d)])
+                    values.append(1.0) 
+                    indices.append(x_var[(t, oj, h, d)])
+                    values.append(1.0)
+            my_problem.linear_constraints.add(lin_expr=[cplex.SparsePair(ind=indices, val=values)],senses=['L'],rhs=[1], names=[f"Repetitiva_{oi,oj}"])
 
 def solve_lp(my_problem, data):
     
